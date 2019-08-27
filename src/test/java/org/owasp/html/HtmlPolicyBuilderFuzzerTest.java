@@ -91,7 +91,7 @@ public class HtmlPolicyBuilderFuzzerTest extends FuzzyTestCase {
       for (int i = 1000; --i >= 0;) {
         StringBuilder sb = new StringBuilder();
         HtmlSanitizer.Policy policy = policyFactory.apply(
-            HtmlStreamRenderer.create(sb, Handler.DO_NOTHING));
+            HtmlStreamRenderer.create(sb, Handler.DO_NOTHING, true));
         policy.openDocument();
         List<String> attributes = Lists.newArrayList();
         for (int j = 50; --j >= 0;) {

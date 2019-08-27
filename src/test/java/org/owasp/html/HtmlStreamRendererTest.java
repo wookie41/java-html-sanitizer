@@ -48,7 +48,7 @@ public class HtmlStreamRendererTest extends TestCase {
           List<String> errors = HtmlStreamRendererTest.this.errors;
           errors.add(errorMessage);
         }
-      });
+      }, true);
 
   @Override
   protected void setUp() throws Exception {

@@ -226,7 +226,7 @@ public class EbayPolicyExample {
           public void handle(String x) {
             throw new AssertionError(x);
           }
-        });
+        }, true);
     // Use the policy defined above to sanitize the HTML.
     HtmlSanitizer.sanitize(html, POLICY_DEFINITION.apply(renderer));
   }

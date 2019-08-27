@@ -202,6 +202,7 @@ public class HtmlPolicyBuilder {
       AttributePolicy.REJECT_ALL_ATTRIBUTE_POLICY;
   private Set<String> extraRelsForLinks;
   private Set<String> skipRelsForLinks;
+  private boolean shouldSanitizeAttributesNames = true;
 
   /**
    * Allows the named elements.
@@ -278,8 +279,7 @@ public class HtmlPolicyBuilder {
   public HtmlPolicyBuilder allowTextIn(String... elementNames) {
     invalidateCompiledState();
     for (String elementName : elementNames) {
-      elementName = HtmlLexer.canonicalName(elementName);
-      textContainers.put(elementName, true);
+      textContainers.put(HtmlLexer.canonicalName(elementName), true);
     }
     return this;
   }
@@ -297,8 +297,7 @@ public class HtmlPolicyBuilder {
   public HtmlPolicyBuilder disallowTextIn(String... elementNames) {
     invalidateCompiledState();
     for (String elementName : elementNames) {
-      elementName = HtmlLexer.canonicalName(elementName);
-      textContainers.put(elementName, false);
+      textContainers.put(HtmlLexer.canonicalName(elementName), false);
     }
     return this;
   }
@@ -328,7 +327,7 @@ public class HtmlPolicyBuilder {
   public HtmlPolicyBuilder disallowWithoutAttributes(String... elementNames) {
     invalidateCompiledState();
     for (String elementName : elementNames) {
-      elementName = HtmlLexer.canonicalName(elementName);
+      elementName = shouldSanitizeAttributesNames ? HtmlLexer.canonicalName(elementName) : elementName;
       skipIfEmpty.add(elementName);
     }
     return this;
@@ -339,10 +338,8 @@ public class HtmlPolicyBuilder {
    * attributes, and allow them globally or on specific elements.
    */
   public AttributeBuilder allowAttributes(String... attributeNames) {
-    ImmutableList.Builder<String> b = ImmutableList.builder();
-    for (String attributeName : attributeNames) {
-      b.add(HtmlLexer.canonicalName(attributeName));
-    }
+    ImmutableList.Builder<String> b = HtmlPolicyBuilder.
+            sanitizedIfRequired(shouldSanitizeAttributesNames, attributeNames);
     return new AttributeBuilder(b.build());
   }
 
@@ -587,6 +584,15 @@ public class HtmlPolicyBuilder {
   }
 
   /**
+   * Sets the flag the determines if attributes names should be sanitized, ie.
+   * should they be converted to lowercase.
+   */
+  public HtmlPolicyBuilder withAttributesNamesSanitizing(boolean shouldSanitize) {
+    this.shouldSanitizeAttributesNames = shouldSanitize;
+    return this;
+  }
+
+  /**
    * Maps attribute names that need extra handling to producers of those
    * extra guards.
    */
@@ -694,7 +700,7 @@ public class HtmlPolicyBuilder {
     return new PolicyFactory(
         compiled.compiledPolicies, textContainerSet.build(),
         ImmutableMap.copyOf(compiled.globalAttrPolicies),
-        preprocessor, postprocessor);
+        preprocessor, postprocessor, this.shouldSanitizeAttributesNames);
   }
 
   // Speed up subsequent builds by caching the compiled policies.
@@ -956,10 +962,9 @@ public class HtmlPolicyBuilder {
     public HtmlPolicyBuilder onElements(String... elementNames) {
       ImmutableList.Builder<String> b = ImmutableList.builder();
       for (String elementName : elementNames) {
-        b.add(HtmlLexer.canonicalName(elementName));
+          b.add(elementName);
       }
-      return HtmlPolicyBuilder.this.allowAttributesOnElements(
-          policy, attributeNames, b.build());
+      return HtmlPolicyBuilder.this.allowAttributesOnElements(policy, attributeNames, b.build());
     }
   }
 
@@ -1087,6 +1092,21 @@ public class HtmlPolicyBuilder {
       extra.removeAll(skip);
       return RelsOnLinksPolicy.create(extra, skip);
     }
+  }
+
+  private static ImmutableList.Builder<String> sanitizedIfRequired(boolean shouldSanitizeTagNames,
+                                                                   String[] elementNames) {
+    ImmutableList.Builder<String> b = ImmutableList.builder();
+    if (shouldSanitizeTagNames) {
+      for (String elementName : elementNames) {
+        b.add(HtmlLexer.canonicalName(elementName));
+      }
+    } else {
+      for (String elementName : elementNames) {
+        b.add(elementName);
+      }
+    }
+    return b;
   }
 }
 

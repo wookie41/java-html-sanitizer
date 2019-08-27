@@ -61,7 +61,7 @@ public class AntiSamyTest extends TestCase {
           public void handle(String errorMessage) {
             fail(errorMessage);
           }
-        });
+        }, true);
 
     return new HtmlPolicyBuilder()
         .allowElements(

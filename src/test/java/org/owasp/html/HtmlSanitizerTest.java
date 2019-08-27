@@ -448,7 +448,7 @@ public class HtmlSanitizerTest extends TestCase {
           public void handle(String errorMessage) {
             fail(errorMessage);
           }
-        });
+        }, true);
 
     HtmlSanitizer.Policy policy = new HtmlPolicyBuilder()
         // Allow these tags.

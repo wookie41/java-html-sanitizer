@@ -53,6 +53,8 @@ public class HtmlStreamRenderer implements HtmlStreamEventReceiver {
   private final Appendable output;
   private final Handler<? super IOException> ioExHandler;
   private final Handler<? super String> badHtmlHandler;
+  private final boolean shouldSanitizeAttributesNames;
+
   private String lastTagOpened;
   private StringBuilder pendingUnescaped;
   private HtmlTextEscapingMode escapingMode = HtmlTextEscapingMode.PCDATA;
@@ -70,15 +72,16 @@ public class HtmlStreamRenderer implements HtmlStreamEventReceiver {
   public static HtmlStreamRenderer create(
       @WillCloseWhenClosed Appendable output,
       Handler<? super IOException> ioExHandler,
-      Handler<? super String> badHtmlHandler) {
+      Handler<? super String> badHtmlHandler,
+      boolean shouldSanitizeAttributesNames) {
     if (output instanceof Closeable) {
       return new CloseableHtmlStreamRenderer(
-          output, ioExHandler, badHtmlHandler);
+          output, ioExHandler, badHtmlHandler, shouldSanitizeAttributesNames);
     } else if (AutoCloseableHtmlStreamRenderer.isAutoCloseable(output)) {
       return AutoCloseableHtmlStreamRenderer.createAutoCloseableHtmlStreamRenderer(
-          output, ioExHandler, badHtmlHandler);
+          output, ioExHandler, badHtmlHandler, shouldSanitizeAttributesNames);
     } else {
-      return new HtmlStreamRenderer(output, ioExHandler, badHtmlHandler);
+      return new HtmlStreamRenderer(output, ioExHandler, badHtmlHandler, shouldSanitizeAttributesNames);
     }
   }
 
@@ -91,17 +94,19 @@ public class HtmlStreamRenderer implements HtmlStreamEventReceiver {
    *    textual content is {@code "</style>"}.
    */
   public static HtmlStreamRenderer create(
-      StringBuilder output, Handler<? super String> badHtmlHandler) {
+      StringBuilder output, Handler<? super String> badHtmlHandler,
+      boolean shouldSanitizeAttributesNames) {
     // Propagate since StringBuilder should not throw IOExceptions.
-    return create(output, Handler.PROPAGATE, badHtmlHandler);
+    return create(output, Handler.PROPAGATE, badHtmlHandler, shouldSanitizeAttributesNames);
   }
 
   protected HtmlStreamRenderer(
-      Appendable output, Handler<? super IOException> ioExHandler,
-      Handler<? super String> badHtmlHandler) {
+          Appendable output, Handler<? super IOException> ioExHandler,
+          Handler<? super String> badHtmlHandler, boolean shouldSanitizeAttributesNames) {
     this.output = output;
     this.ioExHandler = ioExHandler;
     this.badHtmlHandler = badHtmlHandler;
+    this.shouldSanitizeAttributesNames = shouldSanitizeAttributesNames;
   }
 
   /**
@@ -187,7 +192,9 @@ public class HtmlStreamRenderer implements HtmlStreamEventReceiver {
          attrIt.hasNext();) {
       String name = attrIt.next();
       String value = attrIt.next();
-      name = HtmlLexer.canonicalName(name);
+      if (shouldSanitizeAttributesNames) {
+        name = HtmlLexer.canonicalName(name);
+      }
       if (!isValidHtmlName(name)) {
         error("Invalid attr name", name);
         continue;
@@ -409,10 +416,10 @@ public class HtmlStreamRenderer implements HtmlStreamEventReceiver {
     private final Closeable closeable;
 
     CloseableHtmlStreamRenderer(
-        @WillCloseWhenClosed
-        Appendable output, Handler<? super IOException> errorHandler,
-        Handler<? super String> badHtmlHandler) {
-      super(output, errorHandler, badHtmlHandler);
+            @WillCloseWhenClosed
+                    Appendable output, Handler<? super IOException> errorHandler,
+            Handler<? super String> badHtmlHandler, boolean shouldSanitizeAttributesNames) {
+      super(output, errorHandler, badHtmlHandler, shouldSanitizeAttributesNames);
       this.closeable = (Closeable) output;
     }
 

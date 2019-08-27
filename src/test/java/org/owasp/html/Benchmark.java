@@ -153,7 +153,7 @@ public class Benchmark {
           public void handle(String x) {
             throw new AssertionError(x);
           }
-        });
+        }, true);
 
     HtmlSanitizer.sanitize(html, new HtmlSanitizer.Policy() {
 
@@ -211,7 +211,7 @@ public class Benchmark {
           public void handle(String x) {
             throw new AssertionError(x);
           }
-        });
+        }, true);
 
     HtmlSanitizer.sanitize(html, policyBuilder.build(renderer));
     return sb.toString();

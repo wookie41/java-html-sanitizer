@@ -958,6 +958,32 @@ public class HtmlPolicyBuilderTest extends TestCase {
             "<noscript><p title=\"</noscript><img src=x onerror=alert(1)>\">"));
   }
 
+
+  @Test
+  public static final void testAttributesNamesSanitizingOn() {
+    PolicyFactory pf = new HtmlPolicyBuilder()
+            .allowElements("svg")
+            .allowAttributes("viewBox").globally()
+            .toFactory();
+
+    assertEquals(
+            "<svg viewbox=\"0 0 10 10\"></svg>",
+            pf.sanitize("<svg viewBox=\"0 0 10 10\"></svg>"));
+  }
+
+  @Test
+  public static final void testAttributesNamesSanitizingOff() {
+    PolicyFactory pf = new HtmlPolicyBuilder()
+            .allowElements("svg")
+            .withAttributesNamesSanitizing(false)
+            .allowAttributes("viewBox").globally()
+            .toFactory();
+
+    assertEquals(
+            "<svg viewBox=\"0 0 10 10\"></svg>",
+            pf.sanitize("<svg viewBox=\"0 0 10 10\"></svg>"));
+  }
+
   private static String apply(HtmlPolicyBuilder b) {
     return apply(b, EXAMPLE);
   }

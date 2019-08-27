@@ -128,7 +128,7 @@ public final class HtmlSanitizer {
    */
   public static void sanitize(
       @Nullable String html, final Policy policy,
-      HtmlStreamEventProcessor preprocessor) {
+      HtmlStreamEventProcessor preprocessor, boolean shouldSanitizeAttributesNames) {
     String htmlContent = html != null ? html : "";
 
     HtmlStreamEventReceiver receiver = initializePolicy(policy, preprocessor);
@@ -173,8 +173,9 @@ public final class HtmlSanitizer {
                   } else {
                     attrsReadyForName = false;
                   }
-                  attrs.add(HtmlLexer.canonicalName(
-                      htmlContent.substring(tagBodyToken.start, tagBodyToken.end)));
+                  String attrName = htmlContent.substring(tagBodyToken.start, tagBodyToken.end);
+                  attrs.add(shouldSanitizeAttributesNames ?
+                          HtmlLexer.canonicalName(attrName) : attrName);
                   break;
                 case ATTRVALUE:
                   attrs.add(Encoding.decodeHtml(stripQuotes(
@@ -204,6 +205,12 @@ public final class HtmlSanitizer {
     }
 
     receiver.closeDocument();
+  }
+
+  public static void sanitize(
+          @Nullable String html, final Policy policy,
+          HtmlStreamEventProcessor preprocessor) {
+    sanitize(html, policy, preprocessor, true);
   }
 
   private static String stripQuotes(String encodedAttributeValue) {

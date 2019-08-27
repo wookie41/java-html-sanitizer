@@ -54,7 +54,7 @@ public class TagBalancingHtmlStreamRendererTest extends TestCase {
           public void handle(String x) {
             fail("An unexpected error was raised during the testcase");
           }
-        }));
+        }, true));
   }
 
   @Test
