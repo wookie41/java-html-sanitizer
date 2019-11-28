@@ -28,17 +28,17 @@
 
 package org.owasp.html;
 
-import java.util.Map;
-import java.util.Set;
-import java.util.SortedSet;
-
-import javax.annotation.Nullable;
-
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+
+import java.util.Map;
+import java.util.Set;
+import java.util.SortedSet;
+
+import javax.annotation.Nullable;
 
 /** Describes the kinds of tokens a CSS property's value can safely contain. */
 @TCB
@@ -759,6 +759,15 @@ public final class CssSchema {
         union(azimuthLiterals1, backgroundLiterals2, mozOutlineLiterals0,
               radialGradient$FunLiterals0, radialGradient$FunLiterals1),
         mozOutlineFunctions);
+
+    //todo 1 add property definition
+    Property fill = new Property(
+            258, union(backgroundColorLiterals0, mozOutlineLiterals0),
+            mozOutlineFunctions);
+    //TODO 2 add to builder
+    builder.put("fill", fill);
+
+
     builder.put("radial-gradient()", radialGradient$Fun);
     builder.put("rect()", new Property(5, rect$FunLiterals0, zeroFns));
     //builder.put("alpha()", new Property(1, alpha$FunLiterals0, zeroFns));

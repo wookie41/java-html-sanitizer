@@ -72,7 +72,7 @@ public class EmbeddedCssStreamRenderer implements HtmlStreamEventReceiver {
                     CSSStyleRule rule = (CSSStyleRule) item;
                     String ruleToSanitize = rule.getStyle().getCssText();
                     String sanitizedRule = stylingPolicy.apply(STYLE, STYLE, ruleToSanitize);
-                    rule.getStyle().setCssText(sanitizedRule);
+                    rule.getStyle().setCssText(sanitizedRule == null ? EMPTY_STRING : sanitizedRule);
                     sanitizedCss.append(rule.getCssText());
                 }
             }
