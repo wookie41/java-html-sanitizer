@@ -28,11 +28,12 @@
 
 package org.owasp.html;
 
+import com.google.common.collect.Lists;
+
 import java.util.LinkedList;
 import java.util.List;
-import javax.annotation.Nullable;
 
-import com.google.common.collect.Lists;
+import javax.annotation.Nullable;
 
 /**
  * Consumes an HTML stream, and dispatches events to a policy object which
@@ -160,6 +161,7 @@ public final class HtmlSanitizer {
             }
           } else {
             attrs.clear();
+
 
             boolean attrsReadyForName = true;
             tagBody:

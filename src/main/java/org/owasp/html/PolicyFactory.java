@@ -28,16 +28,16 @@
 
 package org.owasp.html;
 
+import com.google.common.base.Function;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+
 import java.util.Map;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.ThreadSafe;
-
-import com.google.common.base.Function;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 
 /**
  * A factory that can be used to link a sanitizer to an output receiver and that
@@ -51,169 +51,194 @@ import com.google.common.collect.ImmutableSet;
 @Immutable
 @TCB
 public final class PolicyFactory
-    implements Function<HtmlStreamEventReceiver, HtmlSanitizer.Policy> {
+        implements Function<HtmlStreamEventReceiver, HtmlSanitizer.Policy> {
 
-  private final ImmutableMap<String, ElementAndAttributePolicies> policies;
-  private final ImmutableMap<String, AttributePolicy> globalAttrPolicies;
-  private final ImmutableSet<String> textContainers;
-  private final HtmlStreamEventProcessor preprocessor;
-  private final HtmlStreamEventProcessor postprocessor;
-  private final boolean shouldSanitizeAttributesNames;
+    private final ImmutableMap<String, ElementAndAttributePolicies> policies;
+    private final ImmutableMap<String, AttributePolicy> globalAttrPolicies;
+    private final ImmutableSet<String> textContainers;
+    private final HtmlStreamEventProcessor preprocessor;
+    private final HtmlStreamEventProcessor postprocessor;
+    private final boolean shouldSanitizeAttributesNames;
+    private final boolean isCssEmbeddingAllowed;
+    private final StylingPolicy stylingPolicy;
 
-  PolicyFactory(
-      ImmutableMap<String, ElementAndAttributePolicies> policies,
-      ImmutableSet<String> textContainers,
-      ImmutableMap<String, AttributePolicy> globalAttrPolicies,
-      HtmlStreamEventProcessor preprocessor,
-      HtmlStreamEventProcessor postprocessor,
-      boolean shouldSanitizeAttributesNames) {
-    this.policies = policies;
-    this.textContainers = textContainers;
-    this.globalAttrPolicies = globalAttrPolicies;
-    this.preprocessor = preprocessor;
-    this.postprocessor = postprocessor;
-    this.shouldSanitizeAttributesNames = shouldSanitizeAttributesNames;
-  }
-
-  /** Produces a sanitizer that emits tokens to {@code out}. */
-  public HtmlSanitizer.Policy apply(@Nonnull HtmlStreamEventReceiver out) {
-    return new ElementAndAttributePolicyBasedSanitizerPolicy(
-        postprocessor.wrap(out), policies, textContainers);
-  }
-
-  /**
-   * Produces a sanitizer that emits tokens to {@code out} and that notifies
-   * any {@code listener} of any dropped tags and attributes.
-   * @param out a renderer that receives approved tokens only.
-   * @param listener if non-null, receives notifications of tags and attributes
-   *     that were rejected by the policy.  This may tie into intrusion
-   *     detection systems.
-   * @param context if {@code (listener != null)} then the context value passed
-   *     with notifications.  This can be used to let the listener know from
-   *     which connection or request the questionable HTML was received.
-   */
-  public <CTX> HtmlSanitizer.Policy apply(
-      HtmlStreamEventReceiver out, @Nullable HtmlChangeListener<CTX> listener,
-      @Nullable CTX context) {
-    if (listener == null) {
-      return apply(out);
-    } else {
-      HtmlChangeReporter<CTX> r = new HtmlChangeReporter<CTX>(
-          out, listener, context);
-      r.setPolicy(apply(r.getWrappedRenderer()));
-      return r.getWrappedPolicy();
+    PolicyFactory(
+            ImmutableMap<String, ElementAndAttributePolicies> policies,
+            ImmutableSet<String> textContainers,
+            ImmutableMap<String, AttributePolicy> globalAttrPolicies,
+            HtmlStreamEventProcessor preprocessor,
+            HtmlStreamEventProcessor postprocessor,
+            boolean shouldSanitizeAttributesNames,
+            boolean isCssEmbeddingAllowed,
+            StylingPolicy stylingPolicy) {
+        this.policies = policies;
+        this.textContainers = textContainers;
+        this.globalAttrPolicies = globalAttrPolicies;
+        this.preprocessor = preprocessor;
+        this.postprocessor = postprocessor;
+        this.shouldSanitizeAttributesNames = shouldSanitizeAttributesNames;
+        this.isCssEmbeddingAllowed = isCssEmbeddingAllowed;
+        this.stylingPolicy = stylingPolicy;
     }
-  }
 
-  /** A convenience function that sanitizes a string of HTML. */
-  public String sanitize(@Nullable String html) {
-    return sanitize(html, null, null);
-  }
+    /**
+     * Produces a sanitizer that emits tokens to {@code out}.
+     */
+    public HtmlSanitizer.Policy apply(@Nonnull HtmlStreamEventReceiver out) {
+        return new ElementAndAttributePolicyBasedSanitizerPolicy(
+                postprocessor.wrap(out), policies, textContainers);
+    }
 
-  /**
-   * A convenience function that sanitizes a string of HTML and reports
-   * the names of rejected element and attributes to listener.
-   * @param html the string of HTML to sanitize.
-   * @param listener if non-null, receives notifications of tags and attributes
-   *     that were rejected by the policy.  This may tie into intrusion
-   *     detection systems.
-   * @param context if {@code (listener != null)} then the context value passed
-   *     with notifications.  This can be used to let the listener know from
-   *     which connection or request the questionable HTML was received.
-   * @return a string of HTML that complies with this factory's policy.
-   */
-  public <CTX> String sanitize(
-      @Nullable String html,
-      @Nullable HtmlChangeListener<CTX> listener, @Nullable CTX context) {
-    if (html == null) { return ""; }
-    StringBuilder out = new StringBuilder(html.length());
-    HtmlSanitizer.sanitize(
-        html,
-        apply(
-            HtmlStreamRenderer.create(out, Handler.DO_NOTHING, this.shouldSanitizeAttributesNames),
-            listener,
-            context),
-        preprocessor,
-            shouldSanitizeAttributesNames);
-    return out.toString();
-  }
-
-  /**
-   * Produces a factory that allows the union of the grants, and intersects
-   * policies where they overlap on a particular granted attribute or element
-   * name.
-   */
-  public PolicyFactory and(PolicyFactory f) {
-    ImmutableMap.Builder<String, ElementAndAttributePolicies> b
-        = ImmutableMap.builder();
-    // Merge this and f into a map of element names to attribute policies.
-    for (Map.Entry<String, ElementAndAttributePolicies> e
-        : policies.entrySet()) {
-      String elName = e.getKey();
-      ElementAndAttributePolicies p = e.getValue();
-      ElementAndAttributePolicies q = f.policies.get(elName);
-      if (q != null) {
-        p = p.and(q);
-      } else {
-        // Mix in any globals that are not already taken into account in this.
-        p = p.andGlobals(f.globalAttrPolicies);
-      }
-      b.put(elName, p);
-    }
-    // Handle keys that are in f but not in this.
-    for (Map.Entry<String, ElementAndAttributePolicies> e
-        : f.policies.entrySet()) {
-      String elName = e.getKey();
-      if (!policies.containsKey(elName)) {
-        ElementAndAttributePolicies p = e.getValue();
-        // Mix in any globals that are not already taken into account in this.
-        p = p.andGlobals(globalAttrPolicies);
-        b.put(elName, p);
-      }
-    }
-    ImmutableSet<String> allTextContainers;
-    if (this.textContainers.containsAll(f.textContainers)) {
-      allTextContainers = this.textContainers;
-    } else if (f.textContainers.containsAll(this.textContainers)) {
-      allTextContainers = f.textContainers;
-    } else {
-      allTextContainers = ImmutableSet.<String>builder()
-        .addAll(this.textContainers)
-        .addAll(f.textContainers)
-        .build();
-    }
-    ImmutableMap<String, AttributePolicy> allGlobalAttrPolicies;
-    if (f.globalAttrPolicies.isEmpty()) {
-      allGlobalAttrPolicies = this.globalAttrPolicies;
-    } else if (this.globalAttrPolicies.isEmpty()) {
-      allGlobalAttrPolicies = f.globalAttrPolicies;
-    } else {
-      ImmutableMap.Builder<String, AttributePolicy> ab = ImmutableMap.builder();
-      for (Map.Entry<String, AttributePolicy> e
-          : this.globalAttrPolicies.entrySet()) {
-        String attrName = e.getKey();
-        ab.put(
-            attrName,
-            AttributePolicy.Util.join(
-                e.getValue(), f.globalAttrPolicies.get(attrName)));
-      }
-      for (Map.Entry<String, AttributePolicy> e
-          : f.globalAttrPolicies.entrySet()) {
-        String attrName = e.getKey();
-        if (!this.globalAttrPolicies.containsKey(attrName)) {
-          ab.put(attrName, e.getValue());
+    /**
+     * Produces a sanitizer that emits tokens to {@code out} and that notifies
+     * any {@code listener} of any dropped tags and attributes.
+     *
+     * @param out      a renderer that receives approved tokens only.
+     * @param listener if non-null, receives notifications of tags and attributes
+     *                 that were rejected by the policy.  This may tie into intrusion
+     *                 detection systems.
+     * @param context  if {@code (listener != null)} then the context value passed
+     *                 with notifications.  This can be used to let the listener know from
+     *                 which connection or request the questionable HTML was received.
+     */
+    public <CTX> HtmlSanitizer.Policy apply(
+            HtmlStreamEventReceiver out, @Nullable HtmlChangeListener<CTX> listener,
+            @Nullable CTX context) {
+        if (listener == null) {
+            return apply(out);
+        } else {
+            HtmlChangeReporter<CTX> r = new HtmlChangeReporter<CTX>(
+                    out, listener, context);
+            r.setPolicy(apply(r.getWrappedRenderer()));
+            return r.getWrappedPolicy();
         }
-      }
-      allGlobalAttrPolicies = ab.build();
     }
-    HtmlStreamEventProcessor compositionOfPreprocessors
-        = HtmlStreamEventProcessor.Processors.compose(
-            this.preprocessor, f.preprocessor);
-    HtmlStreamEventProcessor compositionOfPostprocessors
-        = HtmlStreamEventProcessor.Processors.compose(
-            this.postprocessor, f.postprocessor);
-    return new PolicyFactory(
-        b.build(), allTextContainers, allGlobalAttrPolicies,
-        compositionOfPreprocessors, compositionOfPostprocessors, this.shouldSanitizeAttributesNames);
-  }
+
+    /**
+     * A convenience function that sanitizes a string of HTML.
+     */
+    public String sanitize(@Nullable String html) {
+        return sanitize(html, null, null);
+    }
+
+    /**
+     * A convenience function that sanitizes a string of HTML and reports
+     * the names of rejected element and attributes to listener.
+     *
+     * @param html     the string of HTML to sanitize.
+     * @param listener if non-null, receives notifications of tags and attributes
+     *                 that were rejected by the policy.  This may tie into intrusion
+     *                 detection systems.
+     * @param context  if {@code (listener != null)} then the context value passed
+     *                 with notifications.  This can be used to let the listener know from
+     *                 which connection or request the questionable HTML was received.
+     * @return a string of HTML that complies with this factory's policy.
+     */
+    public <CTX> String sanitize(
+            @Nullable String html,
+            @Nullable HtmlChangeListener<CTX> listener, @Nullable CTX context) {
+        if (html == null) {
+            return "";
+        }
+        StringBuilder out = new StringBuilder(html.length());
+        HtmlStreamEventReceiver receiver = HtmlStreamRenderer.create(out, Handler.DO_NOTHING, this.shouldSanitizeAttributesNames);
+
+        if (isCssEmbeddingAllowed) {
+            receiver = new EmbeddedCssStreamRenderer(stylingPolicy, receiver);
+        }
+
+        HtmlSanitizer.sanitize(
+                html,
+                apply(receiver, listener, context),
+                preprocessor,
+                shouldSanitizeAttributesNames);
+        return out.toString();
+    }
+
+    /**
+     * Produces a factory that allows the union of the grants, and intersects
+     * policies where they overlap on a particular granted attribute or element
+     * name.
+     */
+    public PolicyFactory and(PolicyFactory f) {
+        ImmutableMap.Builder<String, ElementAndAttributePolicies> b
+                = ImmutableMap.builder();
+        // Merge this and f into a map of element names to attribute policies.
+        for (Map.Entry<String, ElementAndAttributePolicies> e
+                : policies.entrySet()) {
+            String elName = e.getKey();
+            ElementAndAttributePolicies p = e.getValue();
+            ElementAndAttributePolicies q = f.policies.get(elName);
+            if (q != null) {
+                p = p.and(q);
+            } else {
+                // Mix in any globals that are not already taken into account in this.
+                p = p.andGlobals(f.globalAttrPolicies);
+            }
+            b.put(elName, p);
+        }
+        // Handle keys that are in f but not in this.
+        for (Map.Entry<String, ElementAndAttributePolicies> e
+                : f.policies.entrySet()) {
+            String elName = e.getKey();
+            if (!policies.containsKey(elName)) {
+                ElementAndAttributePolicies p = e.getValue();
+                // Mix in any globals that are not already taken into account in this.
+                p = p.andGlobals(globalAttrPolicies);
+                b.put(elName, p);
+            }
+        }
+        ImmutableSet<String> allTextContainers;
+        if (this.textContainers.containsAll(f.textContainers)) {
+            allTextContainers = this.textContainers;
+        } else if (f.textContainers.containsAll(this.textContainers)) {
+            allTextContainers = f.textContainers;
+        } else {
+            allTextContainers = ImmutableSet.<String>builder()
+                    .addAll(this.textContainers)
+                    .addAll(f.textContainers)
+                    .build();
+        }
+        ImmutableMap<String, AttributePolicy> allGlobalAttrPolicies;
+        if (f.globalAttrPolicies.isEmpty()) {
+            allGlobalAttrPolicies = this.globalAttrPolicies;
+        } else if (this.globalAttrPolicies.isEmpty()) {
+            allGlobalAttrPolicies = f.globalAttrPolicies;
+        } else {
+            ImmutableMap.Builder<String, AttributePolicy> ab = ImmutableMap.builder();
+            for (Map.Entry<String, AttributePolicy> e
+                    : this.globalAttrPolicies.entrySet()) {
+                String attrName = e.getKey();
+                ab.put(
+                        attrName,
+                        AttributePolicy.Util.join(
+                                e.getValue(), f.globalAttrPolicies.get(attrName)));
+            }
+            for (Map.Entry<String, AttributePolicy> e
+                    : f.globalAttrPolicies.entrySet()) {
+                String attrName = e.getKey();
+                if (!this.globalAttrPolicies.containsKey(attrName)) {
+                    ab.put(attrName, e.getValue());
+                }
+            }
+            allGlobalAttrPolicies = ab.build();
+        }
+
+        StylingPolicy stylingPolicy = null;
+        AttributePolicy policy = allGlobalAttrPolicies.get("style");
+        if (policy instanceof StylingPolicy) {
+            stylingPolicy = (StylingPolicy) policy;
+        }
+
+        HtmlStreamEventProcessor compositionOfPreprocessors
+                = HtmlStreamEventProcessor.Processors.compose(
+                this.preprocessor, f.preprocessor);
+        HtmlStreamEventProcessor compositionOfPostprocessors
+                = HtmlStreamEventProcessor.Processors.compose(
+                this.postprocessor, f.postprocessor);
+        return new PolicyFactory(
+                b.build(), allTextContainers, allGlobalAttrPolicies,
+                compositionOfPreprocessors, compositionOfPostprocessors, this.shouldSanitizeAttributesNames,
+                stylingPolicy != null, stylingPolicy);
+    }
 }
