@@ -760,11 +760,9 @@ public final class CssSchema {
               radialGradient$FunLiterals0, radialGradient$FunLiterals1),
         mozOutlineFunctions);
 
-    //todo 1 add property definition
     Property fill = new Property(
             258, union(backgroundColorLiterals0, mozOutlineLiterals0),
             mozOutlineFunctions);
-    //TODO 2 add to builder
     builder.put("fill", fill);
 
 

@@ -17,14 +17,14 @@ public class EmbeddedCssStreamRenderer implements HtmlStreamEventReceiver {
     private static final String STYLE = "style";
     private static final String EMPTY_STRING = "";
 
-    private final StylingPolicy stylingPolicy;
+    private final AttributePolicy.JoinableAttributePolicy stylingPolicy;
     private final HtmlStreamEventReceiver delegateReceiver;
 
     private final CSSOMParser cssParser = new CSSOMParser();
 
     private String lastOpenedElement = "";
 
-    public EmbeddedCssStreamRenderer(StylingPolicy stylingPolicy, HtmlStreamEventReceiver delegateReceiver) {
+    public EmbeddedCssStreamRenderer(AttributePolicy.JoinableAttributePolicy stylingPolicy, HtmlStreamEventReceiver delegateReceiver) {
         this.stylingPolicy = stylingPolicy;
         this.delegateReceiver = delegateReceiver;
     }
