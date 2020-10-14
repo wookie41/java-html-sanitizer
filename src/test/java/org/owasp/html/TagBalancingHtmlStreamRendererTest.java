@@ -28,16 +28,15 @@
 
 package org.owasp.html;
 
+import static org.owasp.html.TagBalancingHtmlStreamEventReceiver.isInterElementWhitespace;
+
 import com.google.common.collect.ImmutableList;
 
 import junit.framework.TestCase;
 
-import org.junit.Test;
 import org.junit.Before;
 import org.junit.Ignore;
-
-import static org.owasp.html.TagBalancingHtmlStreamEventReceiver
-              .isInterElementWhitespace;
+import org.junit.Test;
 
 
 @SuppressWarnings("javadoc")
@@ -54,7 +53,7 @@ public class TagBalancingHtmlStreamRendererTest extends TestCase {
           public void handle(String x) {
             fail("An unexpected error was raised during the testcase");
           }
-        }, true));
+        }, true, true));
   }
 
   @Test

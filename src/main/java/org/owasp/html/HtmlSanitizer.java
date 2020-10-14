@@ -128,15 +128,18 @@ public final class HtmlSanitizer {
    *     policy's TCB.
    */
   public static void sanitize(
-      @Nullable String html, final Policy policy,
-      HtmlStreamEventProcessor preprocessor, boolean shouldSanitizeAttributesNames) {
+          @Nullable String html,
+          final Policy policy,
+          HtmlStreamEventProcessor preprocessor,
+          boolean shouldSanitizeAttributesNames,
+          boolean shouldSanitizeElementNames) {
     String htmlContent = html != null ? html : "";
 
     HtmlStreamEventReceiver receiver = initializePolicy(policy, preprocessor);
 
     receiver.openDocument();
 
-    HtmlLexer lexer = new HtmlLexer(htmlContent);
+    HtmlLexer lexer = new HtmlLexer(htmlContent, shouldSanitizeElementNames);
     // Use a linked list so that policies can use Iterator.remove() in an O(1)
     // way.
     LinkedList<String> attrs = Lists.newLinkedList();
@@ -153,15 +156,14 @@ public final class HtmlSanitizer {
           break;
         case TAGBEGIN:
           if (htmlContent.charAt(token.start + 1) == '/') {  // A close tag.
-            receiver.closeTag(HtmlLexer.canonicalName(
-                htmlContent.substring(token.start + 2, token.end)));
+            String tagName = htmlContent.substring(token.start + 2, token.end);
+            receiver.closeTag(HtmlLexer.canonicalName(tagName, shouldSanitizeElementNames));
             while (lexer.hasNext()
                    && lexer.next().type != HtmlTokenType.TAGEND) {
               // skip tokens until we see a ">"
             }
           } else {
             attrs.clear();
-
 
             boolean attrsReadyForName = true;
             tagBody:
@@ -176,8 +178,7 @@ public final class HtmlSanitizer {
                     attrsReadyForName = false;
                   }
                   String attrName = htmlContent.substring(tagBodyToken.start, tagBodyToken.end);
-                  attrs.add(shouldSanitizeAttributesNames ?
-                          HtmlLexer.canonicalName(attrName) : attrName);
+                  attrs.add(HtmlLexer.canonicalName(attrName, shouldSanitizeAttributesNames));
                   break;
                 case ATTRVALUE:
                   attrs.add(Encoding.decodeHtml(stripQuotes(
@@ -193,10 +194,11 @@ public final class HtmlSanitizer {
             if (!attrsReadyForName) {
               attrs.add(attrs.getLast());
             }
+            String elementName = htmlContent.substring(token.start + 1, token.end);
             receiver.openTag(
-                HtmlLexer.canonicalName(
-                    htmlContent.substring(token.start + 1, token.end)),
-                attrs);
+                    HtmlLexer.canonicalName(elementName, shouldSanitizeElementNames),
+                    attrs
+            );
           }
           break;
         default:
@@ -212,7 +214,7 @@ public final class HtmlSanitizer {
   public static void sanitize(
           @Nullable String html, final Policy policy,
           HtmlStreamEventProcessor preprocessor) {
-    sanitize(html, policy, preprocessor, true);
+    sanitize(html, policy, preprocessor, true, true);
   }
 
   private static String stripQuotes(String encodedAttributeValue) {

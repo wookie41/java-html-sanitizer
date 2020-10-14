@@ -28,13 +28,13 @@
 
 package org.owasp.html;
 
-import java.util.List;
-
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
 import junit.framework.TestCase;
+
+import java.util.List;
 
 @SuppressWarnings("javadoc")
 public class HtmlStreamRendererTest extends TestCase {
@@ -48,7 +48,7 @@ public class HtmlStreamRendererTest extends TestCase {
           List<String> errors = HtmlStreamRendererTest.this.errors;
           errors.add(errorMessage);
         }
-      }, true);
+      }, true, true);
 
   @Override
   protected void setUp() throws Exception {

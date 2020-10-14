@@ -59,6 +59,7 @@ public final class PolicyFactory
     private final HtmlStreamEventProcessor preprocessor;
     private final HtmlStreamEventProcessor postprocessor;
     private final boolean shouldSanitizeAttributesNames;
+    private final boolean shouldSanitizeElementsNames;
     private final boolean isCssEmbeddingAllowed;
     private final StylingPolicy stylingPolicy;
 
@@ -69,6 +70,7 @@ public final class PolicyFactory
             HtmlStreamEventProcessor preprocessor,
             HtmlStreamEventProcessor postprocessor,
             boolean shouldSanitizeAttributesNames,
+            boolean shouldSanitizeElementsNames,
             boolean isCssEmbeddingAllowed,
             StylingPolicy stylingPolicy) {
         this.policies = policies;
@@ -77,6 +79,7 @@ public final class PolicyFactory
         this.preprocessor = preprocessor;
         this.postprocessor = postprocessor;
         this.shouldSanitizeAttributesNames = shouldSanitizeAttributesNames;
+        this.shouldSanitizeElementsNames = shouldSanitizeElementsNames;
         this.isCssEmbeddingAllowed = isCssEmbeddingAllowed;
         this.stylingPolicy = stylingPolicy;
     }
@@ -141,7 +144,11 @@ public final class PolicyFactory
             return "";
         }
         StringBuilder out = new StringBuilder(html.length());
-        HtmlStreamEventReceiver receiver = HtmlStreamRenderer.create(out, Handler.DO_NOTHING, this.shouldSanitizeAttributesNames);
+        HtmlStreamEventReceiver receiver = HtmlStreamRenderer.create(
+                out,
+                Handler.DO_NOTHING,
+                this.shouldSanitizeAttributesNames,
+                this.shouldSanitizeElementsNames);
 
         if (isCssEmbeddingAllowed) {
             receiver = new EmbeddedCssStreamRenderer(stylingPolicy, receiver);
@@ -151,7 +158,8 @@ public final class PolicyFactory
                 html,
                 apply(receiver, listener, context),
                 preprocessor,
-                shouldSanitizeAttributesNames);
+                shouldSanitizeAttributesNames,
+                shouldSanitizeElementsNames);
         return out.toString();
     }
 
@@ -238,7 +246,7 @@ public final class PolicyFactory
                 this.postprocessor, f.postprocessor);
         return new PolicyFactory(
                 b.build(), allTextContainers, allGlobalAttrPolicies,
-                compositionOfPreprocessors, compositionOfPostprocessors, this.shouldSanitizeAttributesNames,
+                compositionOfPreprocessors, compositionOfPostprocessors, this.shouldSanitizeAttributesNames, this.shouldSanitizeElementsNames,
                 stylingPolicy != null, stylingPolicy);
     }
 }

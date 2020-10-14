@@ -29,11 +29,13 @@
 package org.owasp.html;
 
 import com.google.common.annotations.VisibleForTesting;
+
 import java.io.Closeable;
 import java.io.Flushable;
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
+
 import javax.annotation.WillCloseWhenClosed;
 import javax.annotation.concurrent.NotThreadSafe;
 
@@ -54,6 +56,7 @@ public class HtmlStreamRenderer implements HtmlStreamEventReceiver {
   private final Handler<? super IOException> ioExHandler;
   private final Handler<? super String> badHtmlHandler;
   private final boolean shouldSanitizeAttributesNames;
+  private final boolean shouldSanitizeElementsNames;
 
   private String lastTagOpened;
   private StringBuilder pendingUnescaped;
@@ -73,15 +76,16 @@ public class HtmlStreamRenderer implements HtmlStreamEventReceiver {
       @WillCloseWhenClosed Appendable output,
       Handler<? super IOException> ioExHandler,
       Handler<? super String> badHtmlHandler,
-      boolean shouldSanitizeAttributesNames) {
+      boolean shouldSanitizeAttributesNames,
+      boolean shouldSanitizeElementsNames) {
     if (output instanceof Closeable) {
       return new CloseableHtmlStreamRenderer(
-          output, ioExHandler, badHtmlHandler, shouldSanitizeAttributesNames);
+          output, ioExHandler, badHtmlHandler, shouldSanitizeAttributesNames, shouldSanitizeElementsNames);
     } else if (AutoCloseableHtmlStreamRenderer.isAutoCloseable(output)) {
       return AutoCloseableHtmlStreamRenderer.createAutoCloseableHtmlStreamRenderer(
-          output, ioExHandler, badHtmlHandler, shouldSanitizeAttributesNames);
+          output, ioExHandler, badHtmlHandler, shouldSanitizeAttributesNames, shouldSanitizeElementsNames);
     } else {
-      return new HtmlStreamRenderer(output, ioExHandler, badHtmlHandler, shouldSanitizeAttributesNames);
+      return new HtmlStreamRenderer(output, ioExHandler, badHtmlHandler, shouldSanitizeAttributesNames, shouldSanitizeElementsNames);
     }
   }
 
@@ -95,18 +99,22 @@ public class HtmlStreamRenderer implements HtmlStreamEventReceiver {
    */
   public static HtmlStreamRenderer create(
       StringBuilder output, Handler<? super String> badHtmlHandler,
-      boolean shouldSanitizeAttributesNames) {
+      boolean shouldSanitizeAttributesNames,
+      boolean shouldSanitizeElementsNames) {
     // Propagate since StringBuilder should not throw IOExceptions.
-    return create(output, Handler.PROPAGATE, badHtmlHandler, shouldSanitizeAttributesNames);
+    return create(output, Handler.PROPAGATE, badHtmlHandler, shouldSanitizeAttributesNames, shouldSanitizeElementsNames);
   }
 
   protected HtmlStreamRenderer(
           Appendable output, Handler<? super IOException> ioExHandler,
-          Handler<? super String> badHtmlHandler, boolean shouldSanitizeAttributesNames) {
+          Handler<? super String> badHtmlHandler,
+          boolean shouldSanitizeAttributesNames,
+          boolean shouldSanitizeElementsNames) {
     this.output = output;
     this.ioExHandler = ioExHandler;
     this.badHtmlHandler = badHtmlHandler;
     this.shouldSanitizeAttributesNames = shouldSanitizeAttributesNames;
+    this.shouldSanitizeElementsNames = shouldSanitizeElementsNames;
   }
 
   /**
@@ -163,7 +171,7 @@ public class HtmlStreamRenderer implements HtmlStreamEventReceiver {
       String unsafeElementName, List<? extends String> attrs)
       throws IOException {
     if (!open) { throw new IllegalStateException(); }
-    String elementName = safeName(unsafeElementName);
+    String elementName = safeName(unsafeElementName, shouldSanitizeElementsNames);
     if (!isValidHtmlName(elementName)) {
       error("Invalid element name", elementName);
       return;
@@ -192,9 +200,7 @@ public class HtmlStreamRenderer implements HtmlStreamEventReceiver {
          attrIt.hasNext();) {
       String name = attrIt.next();
       String value = attrIt.next();
-      if (shouldSanitizeAttributesNames) {
-        name = HtmlLexer.canonicalName(name);
-      }
+      name = HtmlLexer.canonicalName(name, shouldSanitizeAttributesNames);
       if (!isValidHtmlName(name)) {
         error("Invalid attr name", name);
         continue;
@@ -232,7 +238,7 @@ public class HtmlStreamRenderer implements HtmlStreamEventReceiver {
 
   public final void closeTag(String elementName) {
     try {
-      writeCloseTag(safeName(elementName));
+      writeCloseTag(safeName(elementName, shouldSanitizeElementsNames));
     } catch (IOException ex) {
       ioExHandler.handle(ex);
     }
@@ -241,7 +247,7 @@ public class HtmlStreamRenderer implements HtmlStreamEventReceiver {
   private final void writeCloseTag(String uncanonElementName)
       throws IOException {
     if (!open) { throw new IllegalStateException(); }
-    String elementName = HtmlLexer.canonicalName(uncanonElementName);
+    String elementName = HtmlLexer.canonicalName(uncanonElementName, shouldSanitizeElementsNames);
     if (!isValidHtmlName(elementName)) {
       error("Invalid element name", elementName);
       return;
@@ -392,8 +398,8 @@ public class HtmlStreamRenderer implements HtmlStreamEventReceiver {
    * Canonicalizes the element name and possibly substitutes an alternative
    * that has more consistent semantics.
    */
-  static String safeName(String unsafeElementName) {
-    String elementName = HtmlLexer.canonicalName(unsafeElementName);
+  static String safeName(String unsafeElementName, boolean shouldSanitizeElementsNames) {
+    String elementName = HtmlLexer.canonicalName(unsafeElementName, shouldSanitizeElementsNames);
 
     // Substitute a reliably non-raw-text element for raw-text and
     // plain-text elements.
@@ -418,8 +424,8 @@ public class HtmlStreamRenderer implements HtmlStreamEventReceiver {
     CloseableHtmlStreamRenderer(
             @WillCloseWhenClosed
                     Appendable output, Handler<? super IOException> errorHandler,
-            Handler<? super String> badHtmlHandler, boolean shouldSanitizeAttributesNames) {
-      super(output, errorHandler, badHtmlHandler, shouldSanitizeAttributesNames);
+            Handler<? super String> badHtmlHandler, boolean shouldSanitizeAttributesNames, boolean shouldSanitizeElementsNames) {
+      super(output, errorHandler, badHtmlHandler, shouldSanitizeAttributesNames, shouldSanitizeElementsNames);
       this.closeable = (Closeable) output;
     }
 

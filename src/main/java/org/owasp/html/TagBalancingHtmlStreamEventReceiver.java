@@ -28,13 +28,13 @@
 
 package org.owasp.html;
 
-import java.util.BitSet;
-import java.util.List;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
 
 import org.owasp.html.HtmlElementTables.HtmlElementNames;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.Lists;
+import java.util.BitSet;
+import java.util.List;
 
 /**
  * Wraps an HTML stream event receiver to fill in missing close tags.
@@ -97,7 +97,7 @@ public class TagBalancingHtmlStreamEventReceiver
     if (DEBUG) {
       dumpState("open " + elementName);
     }
-    String canonElementName = HtmlLexer.canonicalName(elementName);
+    String canonElementName = HtmlLexer.canonicalName(elementName, true);
 
     int elIndex = METADATA.indexForName(canonElementName);
     // Treat unrecognized tags as void, but emit closing tags in closeTag().
@@ -238,7 +238,7 @@ public class TagBalancingHtmlStreamEventReceiver
     if (DEBUG) {
       dumpState("close " + elementName);
     }
-    String canonElementName = HtmlLexer.canonicalName(elementName);
+    String canonElementName = HtmlLexer.canonicalName(elementName, true);
 
     int elIndex = METADATA.indexForName(canonElementName);
     if (elIndex == UNRECOGNIZED_TAG) {  // Allow unrecognized end tags through.

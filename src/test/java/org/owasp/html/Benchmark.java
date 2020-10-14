@@ -28,16 +28,16 @@
 
 package org.owasp.html;
 
-import java.io.File;
-import java.io.StringReader;
-import java.util.List;
-import java.util.ListIterator;
+import com.google.common.base.Charsets;
+import com.google.common.io.Files;
 
 import org.w3c.dom.Node;
 import org.xml.sax.InputSource;
 
-import com.google.common.base.Charsets;
-import com.google.common.io.Files;
+import java.io.File;
+import java.io.StringReader;
+import java.util.List;
+import java.util.ListIterator;
 
 import nu.validator.htmlparser.dom.HtmlDocumentBuilder;
 
@@ -153,7 +153,7 @@ public class Benchmark {
           public void handle(String x) {
             throw new AssertionError(x);
           }
-        }, true);
+        }, true, true);
 
     HtmlSanitizer.sanitize(html, new HtmlSanitizer.Policy() {
 
@@ -211,7 +211,7 @@ public class Benchmark {
           public void handle(String x) {
             throw new AssertionError(x);
           }
-        }, true);
+        }, true, true);
 
     HtmlSanitizer.sanitize(html, policyBuilder.build(renderer));
     return sb.toString();

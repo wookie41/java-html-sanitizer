@@ -30,6 +30,7 @@ package org.owasp.html;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
+
 import java.util.LinkedList;
 import java.util.NoSuchElementException;
 import java.util.Set;
@@ -48,18 +49,21 @@ final class HtmlLexer extends AbstractTokenStream {
   private final HtmlInputSplitter splitter;
   private State state = State.OUTSIDE_TAG;
 
-  public HtmlLexer(String input) {
+  public HtmlLexer(String input, boolean shouldSanitizeElementsNames) {
     this.input = input;
-    this.splitter = new HtmlInputSplitter(input);
+    this.splitter = new HtmlInputSplitter(input, shouldSanitizeElementsNames);
   }
 
   /**
    * Normalize case of names that are not name-spaced.  This lower-cases HTML
    * element and attribute names, but not ones for embedded SVG or MATHML.
    */
-  static String canonicalName(String elementOrAttribName) {
-    return elementOrAttribName.indexOf(':') >= 0
-        ? elementOrAttribName : Strings.toLowerCase(elementOrAttribName);
+  static String canonicalName(String elementOrAttribName, boolean shouldSanitize) {
+    if (shouldSanitize) {
+      return elementOrAttribName.indexOf(':') >= 0
+              ? elementOrAttribName : Strings.toLowerCase(elementOrAttribName);
+    }
+    return elementOrAttribName;
   }
 
   /**
@@ -282,9 +286,11 @@ final class HtmlInputSplitter extends AbstractTokenStream {
   private String escapeExemptTagName = null;
 
   private HtmlTextEscapingMode textEscapingMode;
+  private boolean shouldSanitizeElementsNames;
 
-  public HtmlInputSplitter(String input) {
+  public HtmlInputSplitter(String input, boolean shouldSanitizeElementsNames) {
     this.input = input;
+    this.shouldSanitizeElementsNames = shouldSanitizeElementsNames;
   }
 
   /**
@@ -313,11 +319,11 @@ final class HtmlInputSplitter extends AbstractTokenStream {
           {
             String canonTagName = canonicalName(
                 token.start + 1, token.end);
-            if (HtmlTextEscapingMode.isTagFollowedByLiteralContent(
-                    canonTagName)) {
+
+            if (HtmlTextEscapingMode.isTagFollowedByLiteralContent(canonTagName)) {
               this.escapeExemptTagName = canonTagName;
               this.textEscapingMode = HtmlTextEscapingMode.getModeForTag(
-                  canonTagName);
+                      canonTagName);
             }
             break;
           }
@@ -613,7 +619,7 @@ final class HtmlInputSplitter extends AbstractTokenStream {
   }
 
   private String canonicalName(int start, int end) {
-    return HtmlLexer.canonicalName(input.substring(start, end));
+    return HtmlLexer.canonicalName(input.substring(start, end), this.shouldSanitizeElementsNames);
   }
 
   private static boolean isIdentStart(char ch) {

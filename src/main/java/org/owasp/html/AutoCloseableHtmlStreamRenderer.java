@@ -47,16 +47,16 @@ final class AutoCloseableHtmlStreamRenderer extends HtmlStreamRenderer
   static AutoCloseableHtmlStreamRenderer createAutoCloseableHtmlStreamRenderer(
           @WillCloseWhenClosed
                   Appendable output, Handler<? super IOException> errorHandler,
-          Handler<? super String> badHtmlHandler, boolean shouldSanitizeAttributesNames) {
+          Handler<? super String> badHtmlHandler, boolean shouldSanitizeAttributesNames, boolean shouldSanitizeElementsNames) {
     return new AutoCloseableHtmlStreamRenderer(
-        output, errorHandler, badHtmlHandler, shouldSanitizeAttributesNames);
+        output, errorHandler, badHtmlHandler, shouldSanitizeAttributesNames, shouldSanitizeElementsNames);
   }
 
   private AutoCloseableHtmlStreamRenderer(
           @WillCloseWhenClosed
                   Appendable output, Handler<? super IOException> errorHandler,
-          Handler<? super String> badHtmlHandler, boolean shouldSanitizeAttributesNames) {
-    super(output, errorHandler, badHtmlHandler, shouldSanitizeAttributesNames);
+          Handler<? super String> badHtmlHandler, boolean shouldSanitizeAttributesNames, boolean shouldSanitizeElementsNames) {
+    super(output, errorHandler, badHtmlHandler, shouldSanitizeAttributesNames, shouldSanitizeElementsNames);
     this.closeable = output;
   }
 

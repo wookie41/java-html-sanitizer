@@ -28,15 +28,15 @@
 
 package org.owasp.html;
 
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
+
 import java.util.List;
 import java.util.ListIterator;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
-
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Lists;
 
 /**
  * A sanitizer policy that applies element and attribute policies to tags.
@@ -144,7 +144,7 @@ class ElementAndAttributePolicyBasedSanitizerPolicy
 
       adjustedElementName = policies.elPolicy.apply(elementName, attrs);
       if (adjustedElementName != null) {
-        adjustedElementName = HtmlLexer.canonicalName(adjustedElementName);
+        adjustedElementName = HtmlLexer.canonicalName(adjustedElementName, true);
       }
     } else {
       adjustedElementName = null;

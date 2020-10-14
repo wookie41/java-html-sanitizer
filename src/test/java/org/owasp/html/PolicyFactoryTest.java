@@ -28,16 +28,16 @@
 
 package org.owasp.html;
 
+import com.google.common.base.Joiner;
+
+import junit.framework.TestCase;
+
+import org.junit.Test;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-
-import org.junit.Test;
-
-import com.google.common.base.Joiner;
-
-import junit.framework.TestCase;
 
 @SuppressWarnings({ "javadoc" })
 public final class PolicyFactoryTest extends TestCase {
@@ -188,7 +188,7 @@ public final class PolicyFactoryTest extends TestCase {
       };
 
       HtmlStreamEventReceiver receiver = new HtmlStreamRenderer(
-          throwingOut, ioHandler, badHtmlHandler, true);
+          throwingOut, ioHandler, badHtmlHandler, true, true);
       HtmlSanitizer.Policy policy = factory.apply(
           receiver, listener, context);
       HtmlSanitizer.sanitize(html, policy);

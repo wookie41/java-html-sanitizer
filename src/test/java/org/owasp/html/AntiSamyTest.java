@@ -24,15 +24,15 @@
 
 package org.owasp.html;
 
-import java.io.IOException;
-import java.util.regex.Pattern;
-
-import org.apache.commons.codec.binary.Base64;
-
 import junit.framework.AssertionFailedError;
 import junit.framework.Test;
 import junit.framework.TestCase;
 import junit.framework.TestSuite;
+
+import org.apache.commons.codec.binary.Base64;
+
+import java.io.IOException;
+import java.util.regex.Pattern;
 
 
 /**
@@ -61,7 +61,7 @@ public class AntiSamyTest extends TestCase {
           public void handle(String errorMessage) {
             fail(errorMessage);
           }
-        }, true);
+        }, true, true);
 
     return new HtmlPolicyBuilder()
         .allowElements(

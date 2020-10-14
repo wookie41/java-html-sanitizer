@@ -28,9 +28,9 @@
 
 package org.owasp.html;
 
-import org.junit.Test;
-
 import junit.framework.TestCase;
+
+import org.junit.Test;
 
 @SuppressWarnings("javadoc")
 public class HtmlChangeReporterTest extends TestCase {
@@ -46,7 +46,7 @@ public class HtmlChangeReporterTest extends TestCase {
     StringBuilder out = new StringBuilder();
     final StringBuilder log = new StringBuilder();
     HtmlStreamRenderer renderer = HtmlStreamRenderer.create(
-        out, Handler.DO_NOTHING, true);
+        out, Handler.DO_NOTHING, true, true);
     HtmlChangeListener<Context> listener = new HtmlChangeListener<Context>() {
       public void discardedTag(Context context, String elementName) {
         assertSame(testContext, context);

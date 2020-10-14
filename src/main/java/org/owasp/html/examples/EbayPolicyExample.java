@@ -28,9 +28,9 @@
 
 package org.owasp.html.examples;
 
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.util.regex.Pattern;
+import com.google.common.base.Charsets;
+import com.google.common.base.Predicate;
+import com.google.common.io.CharStreams;
 
 import org.owasp.html.Handler;
 import org.owasp.html.HtmlPolicyBuilder;
@@ -38,9 +38,9 @@ import org.owasp.html.HtmlSanitizer;
 import org.owasp.html.HtmlStreamRenderer;
 import org.owasp.html.PolicyFactory;
 
-import com.google.common.base.Charsets;
-import com.google.common.base.Predicate;
-import com.google.common.io.CharStreams;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.util.regex.Pattern;
 
 /**
  * Based on the
@@ -226,7 +226,7 @@ public class EbayPolicyExample {
           public void handle(String x) {
             throw new AssertionError(x);
           }
-        }, true);
+        }, true, true);
     // Use the policy defined above to sanitize the HTML.
     HtmlSanitizer.sanitize(html, POLICY_DEFINITION.apply(renderer));
   }

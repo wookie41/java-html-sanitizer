@@ -28,16 +28,16 @@
 
 package org.owasp.html;
 
-import junit.framework.TestCase;
-
-import java.util.Arrays;
-import java.util.List;
-
-import org.junit.Test;
-
 import com.google.common.base.Charsets;
 import com.google.common.collect.Lists;
 import com.google.common.io.Resources;
+
+import junit.framework.TestCase;
+
+import org.junit.Test;
+
+import java.util.Arrays;
+import java.util.List;
 
 @SuppressWarnings("javadoc")
 public class HtmlLexerTest extends TestCase {
@@ -122,7 +122,7 @@ public class HtmlLexerTest extends TestCase {
   }
 
   private static void lex(String input, Appendable out) throws Exception {
-    HtmlLexer lexer = new HtmlLexer(input);
+    HtmlLexer lexer = new HtmlLexer(input, true);
     int maxTypeLength = 0;
     for (HtmlTokenType t : HtmlTokenType.values()) {
       maxTypeLength = Math.max(maxTypeLength, t.name().length());
@@ -146,7 +146,7 @@ public class HtmlLexerTest extends TestCase {
   }
 
   private static void assertTokens(String markup, String... golden) {
-    HtmlLexer lexer = new HtmlLexer(markup);
+    HtmlLexer lexer = new HtmlLexer(markup, true);
     List<String> actual = Lists.newArrayList();
     while (lexer.hasNext()) {
       HtmlToken t = lexer.next();

@@ -30,11 +30,11 @@ package org.owasp.html;
 
 import junit.framework.TestCase;
 
+import org.junit.Test;
+
 import java.util.Arrays;
 
 import javax.annotation.Nullable;
-
-import org.junit.Test;
 
 
 @SuppressWarnings("javadoc")
@@ -448,7 +448,7 @@ public class HtmlSanitizerTest extends TestCase {
           public void handle(String errorMessage) {
             fail(errorMessage);
           }
-        }, true);
+        }, true, true);
 
     HtmlSanitizer.Policy policy = new HtmlPolicyBuilder()
         // Allow these tags.
